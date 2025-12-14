@@ -40,7 +40,7 @@ class googleClient():
         try:
 
             df = pd.DataFrame(year_data)
-            blob_name = f'cve_csv/cve_data_{year}.csv'
+            blob_name = f'cve_csvs/cve_data_{year}.csv'
 
             #Creating a blob with file path for CSVs
             blob = self.bucket.blob(blob_name = blob_name)
@@ -56,22 +56,6 @@ class googleClient():
             logging.warning(f'Failed to upload {year} csv to GCS bucket {self.bucket_name}: {e}')
 
 
-    def checkdatasetexists(self, dataset_id):
-        #Checcking if a dataset exists and creating if not
-            try: 
-                self.bigquery_client.get_dataset(dataset_id)
-                return True
-            except gc_exceptions.NotFound:
-                logging.warning('Dataset not found, creating a new dataset')
-                return False
-            
-    def checktableexists(self, table_id):
-        try: 
-            self.bigquery_client.get_table(table_id)
-            return True
-        except gc_exceptions.NotFound:
-            logging.info(f'Table was not found. Creating new table: {table_id}')
-            return False
 
             
     def csv_bigquery(self, isLocal, files :List= [], year:str = '1999'):
@@ -79,7 +63,7 @@ class googleClient():
         # Check if it is automated mode 
         if not isLocal:
             
-            dataset_id = 'cisa-cve-data-pipeline.cve_all_new'
+            dataset_id = 'cisa-cve-data-pipeline.cve_all'
             dataset_exists = False
 
             try:               
