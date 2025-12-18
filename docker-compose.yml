@@ -6,16 +6,17 @@ services:
   postgres:
     image: postgres:13
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_USER: junaid
+      POSTGRES_PASSWORD: password123
       POSTGRES_DB: airflow
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
+      test: ["CMD", "pg_isready", "-U", "junaid"]
       interval: 10s
       timeout: 5s
       retries: 5
+    #secrets: To be added for production
 
   #Service 2: Airflow Webserver
   airflow-webserver:
@@ -25,7 +26,7 @@ services:
     environment:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/repo/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://junaid:password123@postgres/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
       PYTHONPATH: /opt/airflow/repo/src
     ports:
@@ -40,7 +41,7 @@ services:
                       --firstname Air 
                       --lastname Flow 
                       --role Admin 
-                      --email admin@example.com 
+                      --email junaidwork465@gmail.com 
                       || true
                       && airflow webserver"
     healthcheck:
@@ -48,6 +49,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    #secrets:
 
   #Service 3: Airflow Scheduler
   airflow-scheduler:
@@ -57,7 +59,7 @@ services:
     environment:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/repo/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://junaid:password123@postgres/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
       PYTHONPATH: /opt/airflow/repo/src
 
