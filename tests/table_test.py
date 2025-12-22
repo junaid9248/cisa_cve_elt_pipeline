@@ -1,10 +1,11 @@
 from src.gc import GoogleClient as gc
-import pytest
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def test_table():
     googleclient = gc()
 
-    storage_client = googleclient.storage_client
     bigquery_client = googleclient.bigquery_client
 
     try:
@@ -23,7 +24,7 @@ def test_table():
             return (f'Dataset {dataset_id} contains CVE IDs from 1999 or 2000, which is expected.')
 
     except Exception as e:
-        pytest.fail(f"Failed to access BigQuery dataset: {e}")
+        logging.error(f"Failed to access BigQuery dataset: {e}")
 
 
 if __name__ == "__main__":

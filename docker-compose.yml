@@ -31,17 +31,17 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-      AIRFLOW__API__SECRET_KEY: 'new0535341996!'
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'new0535341996!'
       # For later version of Airflow, default auth manager is SimpleAuthManager so we change it to FabAuthManager
       AIRFLOW__CORE__AUTH_MANAGER: "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
-      # For pointing to the 
-      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://webserver:8080/execution/"
-      AIRFLOW__API_AUTH__JWT_SECRET: "jwt_secret_string"      
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: "airflow.utils.net.get_host_ip_address"
       PYTHONPATH: /opt/airflow/repo/src
+      GCLOUD_APP_CREDENTIALS: /opt/airflow/secrets/cisa-cve-data-pipeline-a26a62e94ef3.json
     ports:
       - "8080:8080"
     volumes:
       - ./:/opt/airflow/repo
+      - ./secrets:/opt/airflow/secrets:ro
 
     command: bash -c "airflow db migrate && 
                       airflow users create 
@@ -51,7 +51,7 @@ services:
                       --lastname Flow 
                       --role Admin 
                       --email junaidwork456@gmail.com
-                      && airflow api-server"
+                      && airflow webserver"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -72,12 +72,15 @@ services:
       AIRFLOW__CORE__AUTH_MANAGER: "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://webserver:8080/execution/"
-      AIRFLOW__API_AUTH__JWT_SECRET: "jwt_secret_string" 
+      AIRFLOW__CORE__HOSTNAME_CALLABLE: "airflow.utils.net.get_host_ip_address"
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'new0535341996!'
       PYTHONPATH: /opt/airflow/repo/src
+      GCLOUD_APP_CREDENTIALS: /opt/airflow/secrets/cisa-cve-data-pipeline-a26a62e94ef3.json
+
 
     volumes:
       - ./:/opt/airflow/repo
+      - ./secrets:/opt/airflow/secrets:ro
 
     command: airflow scheduler
 
