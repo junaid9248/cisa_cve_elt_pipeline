@@ -1,17 +1,15 @@
 import logging
 logging.basicConfig(level=logging.INFO)
 
-import json 
-import pandas as pd
-from typing import Dict, List, Optional
-
-from .gc import GoogleClient
+from src.gc import GoogleClient
+from src.config import GCLOUD_PROJECTNAME
 
 merge_query = f'''
 
-    MERGE `{gc.projectID}.cve_all.cve_combined_final_table` 
+    MERGE `{GCLOUD_PROJECTNAME}.cve_all.cve_combined_final_table` 
     as target
     USING (
+        SELECT
             cve_id,
             published_date,
             updated_date,
@@ -39,13 +37,13 @@ merge_query = f'''
             cwe_number,
             cwe_description
 
-FROM `{gc.projectID}.cve_all.cve_combined_staging_table`
+FROM `{GCLOUD_PROJECTNAME}.cve_all.cve_combined_staging_table`
 QUALIFY ROW_NUMBER() OVER (
     PARTITION BY cve_id
     ORDER BY updated_date DESC, published_date DESC
 ) = 1
 ) as source
-ON target.cve_id == source.cve_id
+ON target.cve_id = source.cve_id
 
 
 WHEN MATCHED THEN
@@ -107,7 +105,8 @@ WHEN NOT MATCHED THEN
 
     VALUES (
         source.cve_id,
-        source.published source.cve_id.updated_date,
+        source.published_date,
+        source.updated_date,
         source.cisa_kev,
         source.cisa_kev_date,
         source.cvss_version,

@@ -389,7 +389,7 @@ def extract_cvedata (cve_data_json: Dict = []):
 
                                 if missing_metrics:
                                     # Handle missing metrics (e.g., log a warning)
-                                    print(f"⚠️ Missing CVSS {version_key1} metrics for {cve_id}: {missing_metrics}")
+                                    print(f"⚠️ Missing CVSS {version_key1} metrics for {cve_id}: {missing_metrics} in the metrics container")
 
                                     if cvss_vector_string:
                                         vector_string_to_metrics(cve_entry_template ,cvss_vector_string)

@@ -6,7 +6,7 @@ import json
 import logging
 import pandas as pd
 from typing import Dict, List, Optional, Any
-from src.config import GCLOUD_API_KEY, GCLOUD_BUCKETNAME, GCLOUD_APP_CREDENTIALS, GCLOUD_PROJECTNAME
+from src.config import GCLOUD_BUCKETNAME, GCLOUD_APP_CREDENTIALS, GCLOUD_PROJECTNAME
 
 logging.basicConfig(level = logging.INFO)
 
@@ -103,89 +103,69 @@ class GoogleClient():
             dataset.location = 'US'
 
             dataset = self.bigquery_client.create_dataset(dataset=dataset, exists_ok=True ,timeout=30)
-            logging.info(f'Successfully created: {dataset.dataset_id} in {self.bigquery_client.project}')
+            if dataset:
+                logging.info(f'Successfully created: {dataset.dataset_id} in {self.bigquery_client.project}')
             dataset_exists = True
         except Exception as e:
             logging.warning(f'Error creating dataset: {e}')
             dataset_exists = False
     
-        
         # If dataset exists proceeding with table creation or update
         if dataset_exists:
-            table_id = f'cve_{year}_table'
+            table_id = f'cve_combined_staging_table'
             table_ref = f'{dataset_id}.{table_id}'
-            
-            # Defining the new table object
-            new_table = bigquery.Table(table_ref, schema= year_table_schema)
-
-            try: 
-                #Inserting new table into the dataset
+            try:
+                self.bigquery_client.get_table(table_ref)
+            except Exception:
+                logging.error(f'Staging table {table_ref} does not exist. Attempting to create it...')
+                # Defining the new table object
+                new_table = bigquery.Table(table_ref, schema= year_table_schema)
                 table = self.bigquery_client.create_table(table= new_table, exists_ok=True)
 
                 updated_table = self.bigquery_client.update_table(table, fields=['schema'])
 
                 logging.info(f'Successfully created table: {updated_table.table_id} in dataset folder {updated_table.dataset_id}')
+            
+            # Truncating the table before inserting new data for cleaner data
+            truncate_sql = f"TRUNCATE TABLE `{table_ref}`"
+            self.bigquery_client.query(truncate_sql).result()
+            logging.info("Truncated staging table before insert: %s", table_ref)
 
-                rows_to_insert = files                    
-                fill_errors = self.bigquery_client.insert_rows_json(
-                    table = new_table,
-                    json_rows= rows_to_insert
-                )
+            # Inserting data into the staging table
+            rows_to_insert = files                    
+            fill_errors = self.bigquery_client.insert_rows_json(
+                table = new_table,
+                json_rows= rows_to_insert
+            )
 
-                if fill_errors:
-                    logging.ERROR(f'Error while filling rows for table {table_ref}')
+            if fill_errors:
+                logging.ERROR(f'Error while filling rows for table {table_ref}')
 
-                    # Return obj is a list of errors. Each element has propert
-                    for error in fill_errors:
-                        logging.warning(f'Error inserting: {error}')
-                else:
-                    logging.info(f'Successfully inserted rows for table: {table_ref}')
-
-            except Exception as e:
-                logging.warning(f'failed to create table: {e}')
+                # Return obj is a list of errors. Each element has propert
+                for error in fill_errors:
+                    logging.warning(f'Error inserting: {error}')
+            else:
+                logging.info(f'Successfully inserted rows for table: {table_ref}')
 
     def combined_final_table_bigquery(self, query: str = '', year: Optional[str] = 'combined_final'):
-        dataset_id = 'cisa-cve-data-pipeline.cve_all'
-        dataset_exists = False
 
-        try:               
-            #Create a bigquery dataset object
-            dataset = bigquery.Dataset(dataset_id)
-            dataset.location = 'US'
+        final_table_id = f"cisa-cve-data-pipeline.cve_all.cve_combined_final_table"
+       
+        try:
+            # Try to get final table if it exists
+            self.bigquery_client.get_table(final_table_id)
+        except Exception:
+            logging.error(f'Final table {final_table_id} does not exist. Attempting to create it...')
+            new_table = bigquery.Table(final_table_id, schema= year_table_schema)
+            self.bigquery_client.create_table(table= new_table, exists_ok=True)
 
-            dataset = self.bigquery_client.create_dataset(dataset=dataset, exists_ok=True ,timeout=30)
-            logging.info(f'Successfully created: {dataset.dataset_id} in {self.bigquery_client.project}')
-            dataset_exists = True
+        # Run merge query to update final table
+        try: 
+            query_job = self.bigquery_client.query(query)
+            results = query_job.result()
+            logging.info(f'Successfully updated final table: {final_table_id}: {results}')
         except Exception as e:
-            logging.warning(f'Error creating dataset: {e}')
-            dataset_exists = False
-
-        if dataset_exists:
-            # Ensure final table exists (one-time schema clone from staging)
-            final_table_id = f"{dataset_id}.cve_combined_final_table"
-            staging_table_id = f"{dataset_id}.cve_{year}_table"
-            try:
-                # Try to get final table if it exists
-                self.bigquery_client.get_table(final_table_id)
-            except Exception:
-                logging.error(f'Final table {final_table_id} does not exist. Attempting to create it...')
-                new_table = bigquery.Table(final_table_id, schema= year_table_schema)
-                self.bigquery_client.create_table(table= new_table, exists_ok=True)
-
-            # Skipping merge if staging table is empty
-            staging_table = self.bigquery_client.get_table(staging_table_id)
-            if staging_table.num_rows == 0:
-                logging.info("Staging table is empty; skipping MERGE.")
-                return
-
-            # Run merge query to update final table
-            try: 
-            
-                query_job = self.bigquery_client.query(query)
-                results = query_job.result()
-                logging.info(f'Successfully updated final table: {final_table_id}: {results}')
-            except Exception as e:
-                logging.warning(f'Failed to update final table: {e}')
+            logging.warning(f'Failed to update final table: {e}')
 
                 
 

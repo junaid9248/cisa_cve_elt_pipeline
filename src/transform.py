@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 from typing import Dict, List, Optional
 
+from google.cloud import bigquery
 from .gc import GoogleClient
 from src.extract import cveExtractor
 from .parser import extract_cvedata
