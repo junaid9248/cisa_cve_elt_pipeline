@@ -1,14 +1,21 @@
-from google.cloud import storage, bigquery, exceptions as gc_exceptions
+from google.cloud import storage, bigquery, exceptions
 
 from google.oauth2 import service_account
 
+import os
 import json
 import logging
 import pandas as pd
 from typing import Dict, List, Optional, Any
-from src.config import GCLOUD_BUCKETNAME, GOOGLE_APPLICATION_CREDENTIALS, GCLOUD_PROJECTNAME
+
+
+from src.config import GCLOUD_PROJECTNAME
 
 logging.basicConfig(level = logging.INFO)
+
+GCLOUD_PROJECTNAME = os.environ.get('GCLOUD_PROJECTNAME')
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+GCLOUD_BUCKETNAME = os.environ.get('GCLOUD_BUCKETNAME')
 
 year_table_schema = [
                     bigquery.SchemaField('cve_id', 'STRING', mode='REQUIRED', description='Unique CVE identifier'),
@@ -48,10 +55,10 @@ year_table_schema = [
                     bigquery.SchemaField('cwe_description', 'STRING', description='Description of CWE')]
 class GoogleClient():
 
-    def __init__(self, bucket_name: str = GCLOUD_BUCKETNAME):
+    def __init__(self, bucket_name: str = GCLOUD_BUCKETNAME, credentials_path: Optional[str] = GOOGLE_APPLICATION_CREDENTIALS):
 
         self.projectID = GCLOUD_PROJECTNAME
-        self.credentials = service_account.Credentials.from_service_account_file(GOOGLE_APPLICATION_CREDENTIALS)
+        self.credentials = service_account.Credentials.from_service_account_file(credentials_path)
 
         #Defining the google storage client and bigquery client with credentials and project id 
         self.storage_client = storage.Client(credentials=self.credentials, project= self.projectID)

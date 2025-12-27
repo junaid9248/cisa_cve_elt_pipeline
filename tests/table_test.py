@@ -1,11 +1,11 @@
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-from src.gc import GoogleClient as gc
+from src.gc import GoogleClient
 
 def test_table():
     #Initialize the GoogleClient instance
-    googleclient = gc()
+    googleclient = GoogleClient(credentials_path='/opt/airflow/repo/secrets/cisa-cve-data-pipeline-a26a62e94ef3.json')
 
     #Access the BigQuery client
     bigquery_client = googleclient.bigquery_client

@@ -1,3 +1,5 @@
 FROM apache/airflow:2.9.3-python3.11
-RUN pip install --no-cache-dir apache-airflow-providers-fab
 
+COPY . /opt/airflow/repo
+WORKDIR /opt/airflow/repo
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt

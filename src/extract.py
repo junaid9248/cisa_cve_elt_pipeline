@@ -8,18 +8,16 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
-from src.config import GH_TOKEN
+#from src.config import GH_TOKEN
 
 from src.gc import GoogleClient
 
 from src.parser import extract_cvedata
 
-
 logging.basicConfig(level=logging.INFO)
-
 #If not available locally will not execute
 load_dotenv(override=True)
-
+             
 class cveExtractor():
     def __init__(self, islocal: Optional[bool] = True, branch: str = 'develop', token: Optional[str] = None):
 
@@ -29,6 +27,27 @@ class cveExtractor():
         self.repo_owner = "cisagov"
         self.repo_name = "vulnrichment"
 
+        self.headers = {
+            'User-Agent': 'CISA-Vulnrichment-Extractor/1.0',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+
+        #Establish a new session
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
+
+        
+        GH_TOKEN = os.environ.get('GH_TOKEN')
+        self.token = GH_TOKEN or token
+        #logging.info(f'This is the set GH token: {self.token}')
+        
+        if self.token:
+            # Add token to self.headers then update the header to current sessoion by usung update method
+            self.session.headers.update({'Authorization': f'token {self.token}'})
+            logging.info('GitHub token for authentication was found and used to establish session')
+        else:
+            logging.warning("  No GitHub token found. Using unauthenticated requests, which may have lower rate limits.")
+
         self.islocal = islocal
 
         #Instantiating a gc class if remote execution
@@ -36,28 +55,7 @@ class cveExtractor():
             self.google_client = GoogleClient()
             logging.info(f'Instantiated a google client for remote upload')
         else:
-            self.google_client = None
-
-        self.headers = {
-            'User-Agent': 'CISA-Vulnrichment-Extractor/1.0',
-            'Accept': 'application/vnd.github.v3+json'
-        }
-
-        self.cve_list = []
-
-        #Establish a new session
-        self.session = requests.Session()
-        self.session.headers.update(self.headers)
-
-        self.token = GH_TOKEN or token
-        #logging.info(f'This is the set GH token: {self.token}')
-        
-        if self.token:
-            logging.info('GitHub token for authentication was found and used to establish session')
-        else:
-            logging.warning(" ⚠️ No GitHub token found. Using unauthenticated requests, which may have lower rate limits. ⚠️")
-
-        
+            self.google_client = None     
 
     def _handle_rate_limit(self, response):
         if response.status_code == 403 and 'rate limit' in response.text.lower():
@@ -73,10 +71,10 @@ class cveExtractor():
     
     def test_connection(self):
         try:
-            response = self.session.get(f'{self.base_url}/repos/{self.repo_owner}/{self.repo_name}')
+            response = self.session.get(f'{self.base_url}/repos/{self.repo_owner}/{self.repo_name}', headers=self.headers)
             response.raise_for_status()
-        except:
-            logging.error(f'Error establishing connection with {self.repo_name} repository')
+        except Exception as e:
+            logging.error(f'Error establishing connection with {self.repo_name} repository: {e}')
 
         if response.status_code == 200:
             logging.info(f'Successfully estabished connection with {self.repo_name} repository')

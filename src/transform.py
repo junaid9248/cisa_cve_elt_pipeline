@@ -1,8 +1,7 @@
 import logging
 import json 
 import argparse
-import pandas as pd
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from google.cloud import bigquery
 from .gc import GoogleClient

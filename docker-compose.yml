@@ -1,7 +1,5 @@
 # docker-compose.yml
 
-# accessing bash shell for a service: docker-compose exec <service_name> bash
-
 services:
   #Service 1: PostgreSQL Database
   postgres:
@@ -22,11 +20,11 @@ services:
   #Service 2: Airflow Webserver
   airflow-webserver:
     build: .
-    env_file:
-      - .env
+    
     image: cve-airflow:latest
     depends_on:
       - postgres
+    working_dir: /opt/airflow/repo
     environment:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/repo/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -36,18 +34,22 @@ services:
       AIRFLOW__CORE__AUTH_MANAGER: "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
       AIRFLOW__CORE__HOSTNAME_CALLABLE: "airflow.utils.net.get_host_ip_address"
       
-      # Non-critcal env vars
       IS_LOCAL: 'false'
       GCLOUD_PROJECTNAME: "cisa-cve-data-pipeline"
+      GOOGLE_APPLICATION_CREDENTIALS: 'secrets/cisa-cve-data-pipeline-a26a62e94ef3.json'
       PYTHONPATH: /opt/airflow/repo
+      GH_TOKEN: ${GH_TOKEN}
 
+      # Docker Compose automatically loads these from .env
+      GCLOUD_BUCKETNAME: ${GCLOUD_BUCKETNAME}
+      MY_EMAIL: ${MY_EMAIL}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
     ports:
       - "8080:8080"
     volumes:
       - ./:/opt/airflow/repo
-      - ./secrets:/opt/airflow/secrets:ro
-
-    command: bash -c "airflow db migrate && 
+    command: bash -c "
+                      airflow db migrate && 
                       airflow users create 
                       --username airflow 
                       --password airflow 
@@ -62,19 +64,17 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    #secrets:
+
 
   #Service 3: Airflow Scheduler
   airflow-scheduler:
     build: .
-
-    env_file:
-      - .env
-
-
     image: cve-airflow:latest
     depends_on:
       - postgres
+    
+    working_dir: /opt/airflow/repo
+
     environment:
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/repo/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -85,15 +85,20 @@ services:
       # Non-critcal env vars
       IS_LOCAL: 'false'
       GCLOUD_PROJECTNAME: "cisa-cve-data-pipeline"
-      PYTHONPATH: /opt/airflow/repo
+      GOOGLE_APPLICATION_CREDENTIALS: 'secrets/cisa-cve-data-pipeline-a26a62e94ef3.json'
+      PYTHONPATH: /opt/airflow/repo  
 
+      # Docker Compose automatically loads these from .env
+      GH_TOKEN: ${GH_TOKEN}
+      GCLOUD_BUCKETNAME: ${GCLOUD_BUCKETNAME}
+      MY_EMAIL: ${MY_EMAIL}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
 
-
-    volumes:
+    volumes: 
       - ./:/opt/airflow/repo
-      - ./secrets:/opt/airflow/secrets:ro
-
     command: airflow scheduler
+
+
 
 volumes:
   postgres_data:

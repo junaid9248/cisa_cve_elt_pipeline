@@ -25,11 +25,6 @@ Thumbs.db
 .git/
 .gitignore
 
-# Secrets 
-.env
-**/.env
-**/*.key
-**/.ssh/
 
 # Python
 __pycache__/
