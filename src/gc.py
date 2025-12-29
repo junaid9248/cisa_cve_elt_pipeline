@@ -1,8 +1,9 @@
 from google.cloud import storage, bigquery, exceptions
-
+from google.cloud.storage import transfer_manager
 from google.oauth2 import service_account
 
 import os
+import io
 import json
 import logging
 import pandas as pd
@@ -77,6 +78,70 @@ class GoogleClient():
             logging.info(f'Uploaded {filename} to {self.bucket_name}')
         except Exception as e:
             logging.error(f'Failed to upload {filename} to {self.bucket_name}: {e}')
+
+    def upload_many_blobs(self, upload_list: List = [], max_workers=50):
+        """
+        Upload many blobs concurrently using Transfer Manager
+        
+        upload_list: List of dicts with 'filename_string' and 'raw_json' keys
+        """
+        if not upload_list:
+            logging.warning("No files to upload")
+            return {'success': 0, 'failed': 0}
+        
+        try:
+            upload_pairs = []
+            
+            for data in upload_list:
+                
+                json_data = json.dumps(data['raw_json']).encode('UTF-8')
+                f = io.BytesIO(json_data)
+                
+                f.seek(0)
+                
+                blob = self.bucket.blob(blob_name=data['filename_string'])
+                upload_pairs.append((f, blob))
+            
+            logging.info(f"Starting batch upload of {len(upload_pairs)} concurrently")
+            
+        
+            results = transfer_manager.upload_many(
+                worker_type=transfer_manager.THREAD,
+                max_workers=max_workers,
+                file_blob_pairs=upload_pairs
+            )
+            
+            # Check results
+            success_count = 0
+            failed_count = 0
+            
+            for i, result in enumerate(results):
+                blob_name = upload_list[i]['filename_string']
+                
+                if isinstance(result, Exception):
+                    failed_count += 1
+                    logging.error(f"Failed to upload {blob_name}: {result}")
+                else:
+                    success_count += 1
+            
+            logging.info(f"✅ Upload complete: {success_count} succeeded, {failed_count} failed")
+            
+            return {
+                'success': success_count,
+                'failed': failed_count,
+                'total': len(upload_list)
+            }
+            
+        except Exception as e:
+            logging.error(f"❌ Batch upload failed with exception: {e}")
+            return {
+                'success': 0,
+                'failed': len(upload_list),
+                'total': len(upload_list),
+                'error': str(e)
+            }
+
+
 
     def csv_to_bucket(self, year_data, year: str = ''):
 

@@ -5,6 +5,7 @@ import os
 import time
 import logging
 from datetime import datetime
+import io
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -274,11 +275,15 @@ class cveExtractor():
         if year_processed_files:
             # If not local batch upload to gcs
             if self.islocal == False and gcs_batch_upload:
-                for item in gcs_batch_upload:
+
+                self.google_client.upload_many_blobs(
+                    upload_list=gcs_batch_upload
+                )
+                '''for item in gcs_batch_upload:
                     self.google_client.upload_blob(
                         raw_json = item['raw_json'],
                         filename = item['filename_string']
-                    )
+                    )'''
             # Else just upload to local storage
             else:
                 self.year_to_csv(year_processed_files=year_processed_files, year= year)

@@ -97,7 +97,5 @@ services:
       - ./:/opt/airflow/repo
     command: airflow scheduler
 
-
-
 volumes:
   postgres_data:
