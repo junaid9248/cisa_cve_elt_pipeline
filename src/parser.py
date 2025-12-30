@@ -109,7 +109,7 @@ def vector_string_to_metrics(cve_entry_template,vector_string: str) -> Dict[str,
     
     return cve_entry_template 
 
-def extract_cvedata (cve_data_json: Dict = []):
+def extract_cvedata (cve_data_json: Dict = {}):
     cve_entry_template={
 
             'cve_id': '',
