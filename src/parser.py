@@ -1,6 +1,50 @@
 from typing import Dict, List, Optional, Any
+from datetime import datetime
 import logging
 
+
+cve_entry_template={
+
+            'cve_id': '',
+            'published_date': None,
+            'updated_date': None,
+
+            'cisa_kev': False,
+            'cisa_kev_date': None,
+
+            #Cvss v3.1 and 4.0 (partial) metrics
+            'cvss_version': None,
+            'base_score': None,
+            'base_severity': '',
+            'attack_vector': '',
+            'attack_complexity': '',
+            'privileges_required': '',
+            'user_interaction': '',
+            'scope': '',
+            'confidentiality_impact': '',
+            'integrity_impact': '',
+            'availability_impact': '',
+
+            #SSVC metrics
+            'ssvc_timestamp': None,
+            'ssvc_exploitation': None,
+            'ssvc_automatable': '',
+            'ssvc_technical_impact': '',
+            'ssvc_decision': '',  
+            
+            #'exploitability_score': '',
+            #'impact_score': '',
+            #'epss_score': '',
+            #'epss_percentile': '',           
+
+            'impacted_vendor': '',
+            'impacted_products': [],
+            'vulnerable_versions': [],
+
+            'cwe_number': '',
+            'cwe_description': '',
+
+        }
 #Helper function to calculate SSVC score 
 def calculate_ssvc_score(exploitation: str, automatable: str, technical_impact: str) -> str:
     # Normalize inputs to lowercase
@@ -39,7 +83,6 @@ def calculate_ssvc_score(exploitation: str, automatable: str, technical_impact: 
             return 'Track'
         
     return 'Unknown'  
-
 
 # Helper function to convert vector string to metric values if they are not present in the CVE data entry already
 def vector_string_to_metrics(cve_entry_template,vector_string: str) -> Dict[str, Any]:
@@ -110,56 +153,21 @@ def vector_string_to_metrics(cve_entry_template,vector_string: str) -> Dict[str,
     return cve_entry_template 
 
 def extract_cvedata (cve_data_json: Dict = {}):
-    cve_entry_template={
-
-            'cve_id': '',
-            'published_date': '',
-            'updated_date': '',
-
-            'cisa_kev': 'FALSE',
-            'cisa_kev_date': '',
-
-            #Cvss v3.1 and 4.0 (partial) metrics
-            'cvss_version': '',
-            'base_score': '',
-            'base_severity': '',
-            'attack_vector': '',
-            'attack_complexity': '',
-            'privileges_required': '',
-            'user_interaction': '',
-            'scope': '',
-            'confidentiality_impact': '',
-            'integrity_impact': '',
-            'availability_impact': '',
-
-            #SSVC metrics
-            'ssvc_timestamp': '',
-            'ssvc_exploitation': '',
-            'ssvc_automatable': '',
-            'ssvc_technical_impact': '',
-            'ssvc_decision': '',  
-            
-            #'exploitability_score': '',
-            #'impact_score': '',
-            #'epss_score': '',
-            #'epss_percentile': '',           
-
-            'impacted_vendor': '',
-            'impacted_products': [],
-            'vulnerable_versions': [],
-
-            'cwe_number': '',
-            'cwe_description': '',
-
-        }
     
     try:
         # 1. FINDING TOP LEVEL METADATA CONTAINER
             cve_id = cve_data_json.get('cveMetadata', {}).get('cveId', '')
             #Extract CVE Id, date publsihed and date updated values
             cve_entry_template['cve_id'] = cve_id
-            cve_entry_template['published_date'] = cve_data_json.get('cveMetadata', {}).get('datePublished', '')
-            cve_entry_template['updated_date'] = cve_data_json.get('cveMetadata', {}).get('dateUpdated', '')
+
+            dt_format =  '%Y-%m-%dT%H:%M:%S'
+            published_date_string = cve_data_json.get('cveMetadata', {}).get('datePublished', '')
+            dt_object = datetime.strptime(date_string=published_date_string, format = dt_format)
+            cve_entry_template['published_date'] = dt_object.isoformat()
+
+            updated_date_string = cve_data_json.get('cveMetadata', {}).get('dateUpdated', '')
+            udt_object = datetime.strptime(data_string = updated_date_string, format= dt_format)
+            cve_entry_template['updated_date'] = udt_object.isoformat()
 
             # 2. FINDING THE ADP CONTAINER FROM TOP LEVEL 'CONTAINERS' CONTAINER
             if 'adp' in cve_data_json.get('containers', {}):
@@ -207,9 +215,9 @@ def extract_cvedata (cve_data_json: Dict = {}):
 
                             # Here we are looking for the CVSS version an the metrics
                             if version_key in metric:
-                                cve_entry_template['cvss_version'] = metric[version_key].get('version', '')
+                                cve_entry_template['cvss_version'] = float(metric[version_key].get('version', '1.1'))
+                                cve_entry_template['base_score'] = float(metric[version_key].get('baseScore', '0.0'))
                                 cve_entry_template['base_severity'] = metric[version_key].get('baseSeverity', '')
-                                cve_entry_template['base_score'] = metric[version_key].get('baseScore', '')
 
                                 # Extract individual metrics if available
                                 if 'attackVector' in metric[version_key]:
@@ -254,7 +262,10 @@ def extract_cvedata (cve_data_json: Dict = {}):
 
                                 # For the other container with type ssvvc
                                 if type_other =='ssvc':
-                                    cve_entry_template['ssvc_timestamp'] = content_other.get('timestamp', '')
+                                    ssvc_time_string = content_other.get('timestamp', '')
+                                    ssvc_time_object = datetime.strptime(format = dt_format, date_string=ssvc_time_string)
+
+                                    cve_entry_template['ssvc_timestamp']  = ssvc_time_object.isoformat()
 
                                     options = content_other.get('options', [])
 
@@ -262,7 +273,7 @@ def extract_cvedata (cve_data_json: Dict = {}):
                                         if 'Exploitation' in option:
                                             cve_entry_template['ssvc_exploitation'] = option.get('Exploitation', '')
                                         if 'Automatable' in option:
-                                            cve_entry_template['ssvc_automatable'] = option.get('Automatable', '')
+                                            cve_entry_template['ssvc_automatable'] = bool(option.get('Automatable', '').lower()) == 'yes'
                                         if 'Technical Impact' in option:
                                             cve_entry_template['ssvc_technical_impact'] = option.get('Technical Impact', '')
                                     
@@ -275,8 +286,10 @@ def extract_cvedata (cve_data_json: Dict = {}):
                                         )
                                 # For the other container with type kev
                                 elif type_other == 'kev':
-                                    cve_entry_template['cisa_kev'] = 'TRUE'
-                                    cve_entry_template['cisa_kev_date'] = content_other.get('dateAdded', '')
+                                    cve_entry_template['cisa_kev'] = True
+                                    kev_date_string = content_other.get('dateAdded', '')
+                                    kdt_object = datetime.strptime(format=dt_format, date_string =kev_date_string )
+                                    cve_entry_template['cisa_kev_date'] =kdt_object.date().isoformat()
 
                     # 2.2.2. Finding the problem types container in the CISA ADP container
                     if cisa_adp_vulnrichment_problem_container:
@@ -356,9 +369,9 @@ def extract_cvedata (cve_data_json: Dict = {}):
 
                             if version_key1 in valid_versions:
                                 # Extracting the CVSS  metrics
-                                cve_entry_template['cvss_version'] = metric[version_key1].get('version', '')
-                                cve_entry_template['base_severity'] = metric[version_key1].get('baseSeverity', '')
-                                cve_entry_template['base_score'] = metric[version_key1].get('baseScore', '')
+                                cve_entry_template['cvss_version'] = float(metric[version_key1].get('version', '1.1')) 
+                                cve_entry_template['base_score']  = float(metric[version_key1].get('baseSeverity', '0.0'))
+                                cve_entry_template['base_severity'] = metric[version_key1].get('baseScore', '')
                                 cvss_vector_string = metric[version_key1].get('vectorString', '')
                                 
                                 # Extract individual metrics if available
