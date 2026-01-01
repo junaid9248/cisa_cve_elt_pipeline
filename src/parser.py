@@ -137,7 +137,7 @@ def parse_cve_datetime_strings(dt_string: str, column_value: str = '', cve_id: s
     for format in formats:
         try:
             dt_object = datetime.strptime(dt_string, format)
-            logging.info(f'This is being returned as dt_object for {column_value} and CVE ID {cve_id}: {dt_object}')
+            #logging.info(f'This is being returned as dt_object for {column_value} and CVE ID {cve_id}: {dt_object}')
             return dt_object
         except Exception as e:
             #logging.error(f'Format error when processing date time for {column_value} trying the next format: {e} ')
