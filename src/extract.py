@@ -48,7 +48,7 @@ class cveExtractor():
             self.session.headers.update({'Authorization': f'token {self.token}'})
             logging.info('GitHub token for authentication was found and used to establish session')
         else:
-            logging.warning("  No GitHub token found. Using unauthenticated requests, which may have lower rate limits.")
+            logging.warning(" No GitHub token found")
 
         self.islocal = islocal
 
@@ -66,7 +66,7 @@ class cveExtractor():
             wait_time = reset_time - current_time + 5 # Add 5 seconds buffer
             
             if wait_time > 0:
-                logging.warning(f"⏳ Rate limit exceeded. Waiting {wait_time} seconds...")
+                logging.warning(f" Rate limit exceeded. Waiting {wait_time} seconds...")
                 time.sleep(wait_time)
                 return True
         return False
@@ -85,9 +85,9 @@ class cveExtractor():
             rate_limit_reset = response.headers.get('x-ratelimit-reset')
 
             if rate_limit_remaining:
-                print(f"✓ API Rate limit remaining: {rate_limit_remaining}")
+                print(f"API Rate limit remaining: {rate_limit_remaining}")
                 if int(rate_limit_remaining) < 60:
-                    logging.warning("Low rate limit remaining. Consider using a GitHub token.")
+                    logging.warning("Low rate limit remaining gh token not set")
             
             return True
 
@@ -242,7 +242,7 @@ class cveExtractor():
 
             logging.info(f"Found {len(all_files)} files for the year {year} Processing them concurrently now...")
 
-            with ThreadPoolExecutor(max_workers=maxworkers) as executor:
+            with ThreadPoolExecutor(max_workers=10) as executor:
                 # Creating a dict which returns extracted dict from self.extract_single_cve_file()
                 futures_dict = {
                     executor.submit(self.extract_single_cve_file, file = file, year = year): file['name'] for file in all_files

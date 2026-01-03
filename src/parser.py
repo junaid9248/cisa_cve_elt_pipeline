@@ -115,7 +115,7 @@ def parse_cve_datetime_strings(dt_string: str, column_value: str = '', cve_id: s
     
     # Step 0: If it is the kevdateadded then print
     if column_value == 'kevdateAdded':
-        logging.info(f'This is the kev date added string: {dt_string}')
+       logging.info(f'This is the kev date added string: {dt_string}')
     # Return if noneType
     if not dt_string:
         logging.info(f'None type value detected for {cve_id} record, returning back')
@@ -395,7 +395,7 @@ def extract_cvedata (cve_data_json: Dict = {}):
                     
                     #iterate over all the metrics in the metrics container
                     for metric in cna_metrics_container:
-                        logging.info(f" Processing metric in CNA container for {cve_id}: {metric.keys()}")
+                        #logging.info(f" Processing metric in CNA container for {cve_id}: {metric.keys()}")
 
                         #if not isinstance(metric, dict) or not isinstance(metric, list):
                             #continue
@@ -403,7 +403,7 @@ def extract_cvedata (cve_data_json: Dict = {}):
 
                         #Checking if the version key is in the metric
                         if version_key1 in metric:
-                            logging.info(f" Extracting CVSS {version_key1} metrics from CNA container for {cve_id}")
+                            #logging.info(f" Extracting CVSS {version_key1} metrics from CNA container for {cve_id}")
 
                             if version_key1 in valid_versions:
                                 # Extracting the CVSS  metrics

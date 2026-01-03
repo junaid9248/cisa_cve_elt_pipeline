@@ -52,21 +52,25 @@ Install and configure neccesary services:
 ### Installation Steps
 1. Clone repository from master branch
 ```sh
-    git clone https://github.com/junaid9248/cisa_cve_elt_pipeline master
+    git clone https://github.com/junaid9248/cisa_cve_ETL_pipeline master
 ```
+2. Configure GCP project (cloud storage, compute engine, bigquery, service account)
+You can use the provided tutorials and others to set up your GCP project with required services:
+- [Google Cloud Full Course for Beginners](https://www.youtube.com/watch?v=lvZk_sc8u5I)
+- [Set Up Google Cloud Project & Service Account](https://www.youtube.com/watch?v=_FmsEkF72M0&t=71s)
 
-2. Install python dependencies using pip manager
+3. Install python dependencies using pip manager
 ```sh
     cd cisa_cve_elt_pipeline
     pip install -r requirements.txt
 ```
 
-3. Create a .env file in root directory
+4. Create a .env file in root directory
 ```sh
     touch .env
 ```
 
-5. Fill the .env with your secrets
+6. Fill the .env with your secrets
 - Create a source.txt file with the following environment variables and set your values:
 ```python
 #source.txt
